@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本語音声学習アプリ（初心者向け安定版）</title>
+    <title>日本語音声学習アプリ（初心者向け・正解明示版）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -77,7 +77,7 @@
             min-height: 140px;
         }
         #speech-text {
-            font-size: 48px; /* ★正解表記文字を大きく（20pxから48pxへ） */
+            font-size: 48px;
             color: #333333;
             min-height: 55px;
             font-weight: bold;
@@ -201,7 +201,6 @@
 </div>
 
 <script>
-    // 全てひらがな・カタカナ表記に統一したリスト
     const wordList = [
         { cat: "虫", accept: ["かぶとむし"], display: "かぶとむし", image: "images/kabutomushi.jpg" },
         { cat: "虫", accept: ["くわがた"], display: "くわがた", image: "images/kuwagata.jpg" },
@@ -307,7 +306,7 @@
         { cat: "調味料", accept: ["みそ"], display: "みそ", image: "images/miso.jpg" },
         { cat: "調味料", accept: ["かつおぶし"], display: "かつおぶし", image: "images/katsuobushi.jpg" },
         { cat: "体", accept: ["め"], display: "め", image: "images/me.jpg" },
-        { cat: "体", accept: ["はな"], display: "はな", image: "images/hana.jpg" },
+        { cat: "体", accept: ["ハナ", "はな"], display: "はな", image: "images/hana.jpg" },
         { cat: "体", accept: ["くち"], display: "くち", image: "images/kuchi.jpg" },
         { cat: "体", accept: ["みみ"], display: "みみ", image: "images/mimi.jpg" },
         { cat: "体", accept: ["かた"], display: "かた", image: "images/kata.jpg" },
@@ -391,7 +390,6 @@
         recognition.maxAlternatives = 1;
     }
 
-    // カタカナをひらがなに変換する関数
     function kataToHira(str) {
         return str.replace(/[\u30a1-\u30f6]/g, function(match) {
             const chr = match.charCodeAt(0) - 0x60;
@@ -399,10 +397,8 @@
         });
     }
 
-    // 漢字や余計な記号をすべて取り除き、純粋なひらがな/カタカナの音の並びだけにする関数（★イントネーションを完全無視する仕様）
     function cleanTextToSound(str) {
         let text = kataToHira(str);
-        // ひらがな、カタカナ、長音符(ー) 以外の文字（漢字やアルファベット、句読点、スペース）を完全に消去
         return text.replace(/[^\u3041-\u3093\u30a1-\u30f6ー]/g, "");
     }
 
@@ -439,251 +435,4 @@
             gain.gain.setValueAtTime(0.15, now + 0.15);
             gain.gain.setValueAtTime(0, now + 0.18);
             gain.gain.setValueAtTime(0.15, now + 0.22);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-            osc1.connect(gain); osc2.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc1.start(now); osc2.start(now);
-            osc1.stop(now + 0.5); osc2.stop(now + 0.5);
-        }
-    }
-
-    if (recognition) {
-        recognition.onend = () => {
-            if (isGameActive) {
-                try { recognition.start(); } catch(e) {}
-            }
-        };
-
-        recognition.onsoundstart = () => { 
-            if (shouldListen) {
-                clearTimeout(silenceTimer); 
-            }
-        };
-
-        recognition.onresult = (event) => {
-            if (!shouldListen) return;
-
-            clearTimeout(silenceTimer);
-            const resultRaw = event.results[0][0].transcript.trim();
-            if (!resultRaw) return;
-
-            // ★イントネーションや余計な文字を排除し、純粋な「ひらがなの音の並び」にする
-            const userSound = cleanTextToSound(resultRaw);
-            if (!userSound) return;
-
-            let learnedDict = JSON.parse(localStorage.getItem("app_learned_speech_dict")) || {};
-            let learnedAcceptsForCurrentWord = learnedDict[currentWord.display] || [];
-            const dynamicAcceptList = [...currentWord.accept, ...learnedAcceptsForCurrentWord];
-
-            // ユーザーの発音が、正解リストのどれかと部分一致、または完全一致するか判定
-            const isCorrect = dynamicAcceptList.some(ans => {
-                const targetSound = cleanTextToSound(ans);
-                if (userSound === targetSound || userSound.includes(targetSound) || targetSound.includes(userSound)) {
-                    return true;
-                }
-                return false;
-            });
-
-            const judgeDisplay = document.getElementById("judge-text");
-            if (isCorrect) {
-                shouldListen = false; 
-
-                // 正解の時は大きな文字をグリーンにする
-                document.getElementById("speech-text").className = "correct";
-                judgeDisplay.innerText = "ただしい";
-                judgeDisplay.className = "correct";
-                playSound('correct');
-                
-                setTimeout(() => {
-                    if (isGameActive) {
-                        currentIndex++;
-                        nextQuestion();
-                    }
-                }, 2000);
-            } else {
-                handleIncorrectState();
-            }
-        };
-
-        recognition.onerror = (event) => {
-            if (event.error === 'no-speech' && shouldListen) {
-                handleIncorrectState();
-            }
-        };
-    }
-
-    function startGame() {
-        initAudio();
-        const category = document.getElementById("category-select").value;
-        if (category === "all") {
-            gameQuestions = [...wordList];
-        } else {
-            gameQuestions = wordList.filter(w => w.cat === category);
-        }
-
-        if (gameQuestions.length === 0) {
-            alert("該当する単語がありません。");
-            return;
-        }
-
-        for (let i = gameQuestions.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [gameQuestions[i], gameQuestions[j]] = [gameQuestions[j], gameQuestions[i]];
-        }
-
-        currentIndex = 0;
-        isGameActive = true;
-
-        document.getElementById("start-btn").disabled = true;
-        document.getElementById("end-btn").disabled = false;
-        document.getElementById("category-select").disabled = true;
-
-        try { recognition.start(); } catch(e) {}
-
-        nextQuestion();
-    }
-
-    function nextQuestion() {
-        if (!isGameActive) return;
-
-        if (currentIndex >= gameQuestions.length) {
-            alert("すべての問題をクリアしました！終了します。");
-            endGame();
-            return;
-        }
-
-        currentWord = gameQuestions[currentIndex];
-        shouldListen = false; 
-        clearTimeout(silenceTimer);
-
-        document.getElementById("judge-text").innerText = "";
-        
-        // ★最初の段階から正解のひらがな・カタカナを大きく表示しておく
-        document.getElementById("speech-text").innerText = currentWord.display;
-        document.getElementById("speech-text").className = "";
-        
-        document.getElementById("guidance-mark").innerText = "";
-        document.getElementById("retry-btn").style.display = "none";
-        document.getElementById("fix-btn").style.display = "none";
-        
-        const photoArea = document.getElementById("photo-area");
-        photoArea.innerHTML = `<img src="${currentWord.image}" alt="写真: ${currentWord.display}" onerror="this.style.display='none'; document.getElementById('photo-area').innerText='[画像ファイル未配置] ${currentWord.display}';">`;
-
-        setTimeout(() => {
-            if (!isGameActive || currentWord !== gameQuestions[currentIndex]) return;
-            playTargetAudio();
-        }, 2000);
-    }
-
-    function playTargetAudio() {
-        shouldListen = false;
-        clearTimeout(silenceTimer);
-        document.getElementById("guidance-mark").innerText = "";
-
-        const utterance = new SpeechSynthesisUtterance(currentWord.display);
-        utterance.lang = 'ja-JP';
-        
-        utterance.onend = () => {
-            if (isGameActive) {
-                setTimeout(() => {
-                    if (isGameActive) activateListeningSlot();
-                }, 300);
-            }
-        };
-
-        window.speechSynthesis.speak(utterance);
-    }
-
-    function activateListeningSlot() {
-        if (!isGameActive) return;
-
-        shouldListen = true; 
-        document.getElementById("speech-text").className = "listening"; // 聞き取り中は青色にする
-        document.getElementById("guidance-mark").innerText = "";
-
-        clearTimeout(silenceTimer);
-        silenceTimer = setTimeout(() => {
-            if (isGameActive && shouldListen && document.getElementById("judge-text").innerText === "") {
-                handleIncorrectState();
-            }
-        }, 7000);
-    }
-
-    function handleIncorrectState() {
-        shouldListen = false; 
-        clearTimeout(silenceTimer);
-
-        document.getElementById("speech-text").className = "incorrect"; // 間違いの時は赤色にする
-        document.getElementById("guidance-mark").innerText = "👂❓";
-        
-        const judgeDisplay = document.getElementById("judge-text");
-        judgeDisplay.innerText = "まちがい";
-        judgeDisplay.className = "incorrect";
-        
-        playSound('incorrect');
-        document.getElementById("retry-btn").style.display = "inline-block";
-        document.getElementById("fix-btn").style.display = "inline-block";
-    }
-
-    function requestFix() {
-        if (!currentWord) return;
-
-        let fixList = JSON.parse(localStorage.getItem("app_fix_required_words")) || [];
-        if (!fixList.includes(currentWord.display)) {
-            fixList.push(currentWord.display);
-            localStorage.setItem("app_fix_required_words", JSON.stringify(fixList));
-        }
-
-        document.getElementById("fix-btn").style.display = "none";
-        document.getElementById("retry-btn").style.display = "none";
-        
-        currentIndex++;
-        nextQuestion();
-    }
-
-    function clearLearningData() {
-        if (confirm("これまでにアプリが学習した音声修正データをすべて削除しますか？")) {
-            localStorage.removeItem("app_fix_required_words");
-            localStorage.removeItem("app_learned_speech_dict");
-            alert("学習データをリセットしました。");
-            if (!isGameActive) endGame();
-        }
-    }
-
-    function listenAgain() {
-        document.getElementById("judge-text").innerText = "";
-        document.getElementById("retry-btn").style.display = "none";
-        document.getElementById("fix-btn").style.display = "none";
-        document.getElementById("guidance-mark").innerText = "";
-        
-        document.getElementById("speech-text").innerText = currentWord.display;
-        document.getElementById("speech-text").className = "";
-        
-        playTargetAudio();
-    }
-
-    function endGame() {
-        isGameActive = false;
-        shouldListen = false;
-        clearTimeout(silenceTimer);
-
-        if (recognition) {
-            try { recognition.abort(); } catch(e) {}
-        }
-
-        document.getElementById("start-btn").disabled = false;
-        document.getElementById("end-btn").disabled = true;
-        document.getElementById("category-select").disabled = false;
-        document.getElementById("retry-btn").style.display = "none";
-        document.getElementById("fix-btn").style.display = "none";
-
-        document.getElementById("photo-area").innerHTML = "はじましょう";
-        document.getElementById("speech-text").innerText = "";
-        document.getElementById("speech-text").className = "";
-        document.getElementById("judge-text").innerText = "";
-        document.getElementById("guidance-mark").innerText = "";
-    }
-</script>
-
-</body>
-</html>
+            gain.gain.exponentialRamp
