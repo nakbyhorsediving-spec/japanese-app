@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日本語音声学習アプリ（自己学習＆フライング防止安定版）</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+        }
+        #game-container {
+            width: 800px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+        }
+        .top-controls {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+        }
+        .category-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+        select {
+            padding: 8px 16px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccd0d5;
+        }
+        .main-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        #photo-area {
+            width: 500px;
+            height: 350px;
+            background-color: #e4e6eb;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #4b4f56;
+            border: 2px dashed #ccd0d5;
+            overflow: hidden;
+        }
+        #photo-area img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .status-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-height: 140px;
+        }
+        #speech-text {
+            font-size: 20px;
+            color: #606770;
+            min-height: 28px;
+            font-weight: bold;
+        }
+        #judge-text {
+            font-size: 42px;
+            font-weight: bold;
+            min-height: 55px;
+        }
+        #guidance-mark {
+            font-size: 48px;
+            min-height: 60px;
+            line-height: 60px;
+        }
+        .action-area {
+            display: flex;
+            gap: 15px;
+            height: 50px;
+        }
+        button {
+            padding: 10px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:active { transform: scale(0.98); }
+        button:disabled { background-color: #cccccc !important; cursor: not-allowed; transform: none; }
+        
+        .start-btn { background-color: #28a745; }
+        .start-btn:hover { background-color: #218838; }
+        .end-btn { background-color: #dc3545; }
+        .end-btn:hover { background-color: #c82333; }
+        .listen-again-btn { background-color: #ff9800; font-size: 18px; }
+        .listen-again-btn:hover { background-color: #e68a00; }
+        .fix-request-btn { background-color: #17a2b8; font-size: 18px; }
+        .fix-request-btn:hover { background-color: #138496; }
+
+        .correct { color: #28a745; }
+        .incorrect { color: #dc3545; }
+        .listening { color: #007bff; animation: pulse 1.5s infinite; }
+
+        .footer-controls {
+            position: absolute;
+            bottom: 10px;
+            width: calc(100% - 30px);
+            display: flex;
+            justify-content: space-between;
+            padding: 0 15px;
+            box-sizing: border-box;
+        }
+        .reset-link {
+            font-size: 12px;
+            color: #dc3545;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .credit {
+            font-size: 12px;
+            color: #8a8d91;
+            font-family: Arial, sans-serif;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div class="top-controls">
+        <div class="category-box">
+            <label for="category-select">カテゴリー:</label>
+            <select id="category-select">
+                <option value="all">すべて</option>
+                <option value="虫">むし</option>
+                <option value="衣類">いるい</option>
+                <option value="動物">どうぶつ</option>
+                <option value="鳥">とり</option>
+                <option value="野菜">やさい</option>
+                <option value="果物">くだもの</option>
+                <option value="肉">にく</option>
+                <option value="爬虫類">はちゅうるい</option>
+                <option value="魚">さかな</option>
+                <option value="色">いろ</option>
+                <option value="乗り物">のりもの</option>
+                <option value="調味料">ちょうみりょう</option>
+                <option value="花">はな</option>
+                <option value="調理器具">ちょうりきぐ</option>
+                <option value="スポーツ">スポーツ</option>
+                <option value="生活用品">せいかつようひん</option>
+                <option value="事務用品">じむようひん</option>
+                <option value="国旗">こっき</option>
+                <option value="文房具">ぶんぼうぐ</option>
+                <option value="体">からだ</option>
+            </select>
+        </div>
+        <div class="main-buttons">
+            <button id="start-btn" class="start-btn" onclick="startGame()">はじめる</button>
+            <button id="end-btn" class="end-btn" onclick="endGame()" disabled>おわる</button>
+        </div>
+    </div>
+
+    <div id="photo-area">はじましょう</div>
+
+    <div class="status-area">
+        <div id="judge-text"></div>
+        <div id="speech-text"></div>
+        <div id="guidance-mark"></div>
+    </div>
+
+    <div class="action-area">
+        <button id="retry-btn" class="listen-again-btn" onclick="listenAgain()" style="display: none;">もういちどきく 🔊</button>
+        <button id="fix-btn" class="fix-request-btn" onclick="requestFix()" style="display: none;">アプリ判定修正要 🛠️</button>
+    </div>
+
+    <div class="footer-controls">
+        <span class="reset-link" onclick="clearLearningData()">学習データをリセット</span>
+        <span class="credit">Created by Nakby's world</span>
+    </div>
+</div>
+
+<script>
+    // 全112単語データ配列
+    const wordList = [
+        { cat: "虫", accept: ["かぶとむし"], display: "かぶとむし", image: "images/kabutomushi.jpg" },
+        { cat: "虫", accept: ["くわがた"], display: "くわがた", image: "images/kuwagata.jpg" },
+        { cat: "虫", accept: ["ちょうちょ"], display: "ちょうちょ", image: "images/tyoutyo.jpg" },
+        { cat: "虫", accept: ["せみ"], display: "せみ", image: "images/semi.jpg" },
+        { cat: "虫", accept: ["ごきぶり"], display: "ごきぶり", image: "images/gokiburi.jpg" },
+        { cat: "虫", accept: ["とんぼ"], display: "とんぼ", image: "images/tonbo.jpg" },
+        { cat: "虫", accept: ["みみず"], display: "みみず", image: "images/mimizu.jpg" },
+        { cat: "衣類", accept: ["ネクタイ", "ねくたい"], display: "ネクタイ", image: "images/nekutai.jpg" },
+        { cat: "衣類", accept: ["ぼうし"], display: "ぼうし", image: "images/boushi.jpg" },
+        { cat: "衣類", accept: ["ワイシャツ", "わいしゃつ"], display: "ワイシャツ", image: "images/yshatsu.jpg" },
+        { cat: "衣類", accept: ["ベルト", "べると"], display: "ベルト", image: "images/beruto.jpg" },
+        { cat: "衣類", accept: ["ソックス", "そっくす"], display: "ソックス", image: "images/sokkusu.jpg" },
+        { cat: "衣類", accept: ["ズボン", "ずぼん"], display: "ズボン", image: "images/zubon.jpg" },
+        { cat: "衣類", accept: ["コート", "こーと"], display: "コート", image: "images/kouto.jpg" },
+        { cat: "動物", accept: ["さる"], display: "さる", image: "images/saru.jpg" },
+        { cat: "動物", accept: ["うさぎ"], display: "うさぎ", image: "images/usagi.jpg" },
+        { cat: "動物", accept: ["いぬ"], display: "いぬ", image: "images/inu.jpg" },
+        { cat: "動物", accept: ["ねこ"], display: "ねこ", image: "images/neko.jpg" },
+        { cat: "動物", accept: ["うま"], display: "うま", image: "images/uma.jpg" },
+        { cat: "動物", accept: ["うし"], display: "うし", image: "images/ushi.jpg" },
+        { cat: "動物", accept: ["キリン", "きりん"], display: "キリン", image: "images/kirin.jpg" },
+        { cat: "動物", accept: ["ライオン", "らいおん"], display: "ライオン", image: "images/raion.jpg" },
+        { cat: "動物", accept: ["ゴリラ", "ごりら"], display: "ゴリラ", image: "images/gorira.jpg" },
+        { cat: "動物", accept: ["ぶた"], display: "ぶた", image: "images/buta.jpg" },
+        { cat: "動物", accept: ["ぞう"], display: "ぞう", image: "images/zou.jpg" },
+        { cat: "動物", accept: ["ねずみ"], display: "ねずみ", image: "images/nezumi.jpg" },
+        { cat: "国旗", accept: ["アメリカ", "あめりか"], display: "アメリカ", image: "images/america.jpg" },
+        { cat: "国旗", accept: ["イタリア", "いたりあ"], display: "イタリア", image: "images/itaria.jpg" },
+        { cat: "国旗", accept: ["フランス", "ふらんす"], display: "フランス", image: "images/france.jpg" },
+        { cat: "国旗", accept: ["ドイツ", "どいつ"], display: "ドイツ", image: "images/doitsu.jpg" },
+        { cat: "国旗", accept: ["イギリス", "いぎりす"], display: "イギリス", image: "images/england.jpg" },
+        { cat: "国旗", accept: ["スペイン", "すぺいん"], display: "スペイン", image: "images/spain.jpg" },
+        { cat: "国旗", accept: ["オランダ", "おらんだ"], display: "オランダ", image: "images/oranda.jpg" },
+        { cat: "国旗", accept: ["カナダ", "かなだ"], display: "カナダ", image: "images/canada.jpg" },
+        { cat: "国旗", accept: ["サウジアラビア", "さうじあらびあ"], display: "サウジアラビア", image: "images/saudi.jpg" },
+        { cat: "国旗", accept: ["アルゼンチン", "あるぜんちん"], display: "アルゼンチン", image: "images/arugentin.jpg" },
+        { cat: "国旗", accept: ["メキシコ", "めきしこ"], display: "メキシコ", image: "images/mexico.jpg" },
+        { cat: "国旗", accept: ["インド", "いんど"], display: "インド", image: "images/indo.jpg" },
+        { cat: "鳥", accept: ["にわとり"], display: "にわとり", image: "images/niwatori.jpg" },
+        { cat: "鳥", accept: ["ふくろう"], display: "ふくろう", image: "images/fukurou.jpg" },
+        { cat: "鳥", accept: ["すずめ"], display: "すずめ", image: "images/suzume.jpg" },
+        { cat: "鳥", accept: ["からす"], display: "からす", image: "images/karasu.jpg" },
+        { cat: "鳥", accept: ["はと"], display: "はと", image: "images/hato.jpg" },
+        { cat: "鳥", accept: ["あひる"], display: "あひる", image: "images/ahiru.jpg" },
+        { cat: "野菜", accept: ["はくさい"], display: "はくさい", image: "images/hakusai.jpg" },
+        { cat: "野菜", accept: ["キャベツ", "きゃべつ"], display: "キャベツ", image: "images/kyabetsu.jpg" },
+        { cat: "野菜", accept: ["れんこん"], display: "れんこん", image: "images/renkon.jpg" },
+        { cat: "野菜", accept: ["たけの子", "たけのここ", "たけの こ", "たけのこ"], display: "たけの子", image: "images/takenoko.jpg" },
+        { cat: "野菜", accept: ["ほうれんそう"], display: "ほうれんそう", image: "images/hourensou.jpg" },
+        { cat: "野菜", accept: ["じゃがいも"], display: "じゃがいも", image: "images/jagaimo.jpg" },
+        { cat: "野菜", accept: ["トマト", "とまと"], display: "トマト", image: "images/tomato.jpg" },
+        { cat: "野菜", accept: ["なすび", "なす"], display: "なすび", image: "images/nasubi.jpg" },
+        { cat: "野菜", accept: ["たまねぎ"], display: "たまねぎ", image: "images/tamanegi.jpg" },
+        { cat: "野菜", accept: ["にんじん"], display: "にんじん", image: "images/ninjin.jpg" },
+        { cat: "野菜", accept: ["もやし"], display: "もやし", image: "images/moyashi.jpg" },
+        { cat: "果物", accept: ["りんご"], display: "りんご", image: "images/ringo.jpg" },
+        { cat: "果物", accept: ["みかん"], display: "みかん", image: "images/mikan.jpg" },
+        { cat: "果物", accept: ["バナナ", "ばなな"], display: "バナナ", image: "images/banana.jpg" },
+        { cat: "果物", accept: ["いちご"], display: "いちご", image: "images/ichigo.jpg" },
+        { cat: "果物", accept: ["すいか"], display: "すいか", image: "images/suika.jpg" },
+        { cat: "肉", accept: ["とりにく"], display: "とりにく", image: "images/toriniku.jpg" },
+        { cat: "肉", accept: ["ぶたにく"], display: "ぶたにく", image: "images/butaniku.jpg" },
+        { cat: "肉", accept: ["ぎゅうにく"], display: "ぎゅうにく", image: "images/gyuniku.jpg" },
+        { cat: "爬虫類", accept: ["へび"], display: "へび", image: "images/hebi.jpg" },
+        { cat: "爬虫類", accept: ["とかげ"], display: "とかげ", image: "images/tokage.jpg" },
+        { cat: "爬虫類", accept: ["かえる"], display: "かえる", image: "images/kaeru.jpg" },
+        { cat: "魚", accept: ["さば"], display: "さば", image: "images/saba.jpg" },
+        { cat: "魚", accept: ["たい"], display: "たい", image: "images/tai.jpg" },
+        { cat: "魚", accept: ["まぐろ"], display: "まぐろ", image: "images/maguro.jpg" },
+        { cat: "魚", accept: ["さんま"], display: "さんま", image: "images/sanma.jpg" },
+        { cat: "魚", accept: ["さけ"], display: "さけ", image: "images/sake.jpg" },
+        { cat: "色", accept: ["あか"], display: "あか", image: "images/aka.jpg" },
+        { cat: "色", accept: ["あお"], display: "あお", image: "images/ao.jpg" },
+        { cat: "色", accept: ["きいろ"], display: "きいろ", image: "images/kiiro.jpg" },
+        { cat: "色", accept: ["みどり"], display: "みどり", image: "images/midori.jpg" },
+        { cat: "色", accept: ["むらさき"], display: "むらさき", image: "images/murasaki.jpg" },
+        { cat: "色", accept: ["くろ"], display: "くろ", image: "images/kuro.jpg" },
+        { cat: "色", accept: ["ピンク", "ぴんく"], display: "ピンク", image: "images/pinku.jpg" },
+        { cat: "色", accept: ["オレンジ", "おれんじ"], display: "オレンジ", image: "images/orange.jpg" },
+        { cat: "乗り物", accept: ["きゅうきゅうしゃ"], display: "きゅうきゅうしゃ", image: "images/kyukyusya.jpg" },
+        { cat: "乗り物", accept: ["しょうぼうしゃ"], display: "しょうぼうしゃ", image: "images/shobosya.jpg" },
+        { cat: "乗り物", accept: ["タクシー", "たくしー"], display: "タクシー", image: "images/takushi.jpg" },
+        { cat: "乗り物", accept: ["パトカー", "ぱとかー"], display: "パトカー", image: "images/patoka.jpg" },
+        { cat: "乗り物", accept: ["ダンプカー", "だんぷかー"], display: "ダンプカー", image: "images/danpuka.jpg" },
+        { cat: "乗り物", accept: ["クレーンしゃ", "くれーんしゃ"], display: "クレーンしゃ", image: "images/kuren_sya.jpg" },
+        { cat: "乗り物", accept: ["フェリー", "ふぇりー"], display: "フェリー", image: "images/feri.jpg" },
+        { cat: "乗り物", accept: ["ヨット", "よっと"], display: "ヨット", image: "images/yotto.jpg" },
+        { cat: "乗り物", accept: ["しんかんせん"], display: "しんかんせん", image: "images/shinkansen.jpg" },
+        { cat: "乗り物", accept: ["ひこうき"], display: "ひこうき", image: "images/hikouki.jpg" },
+        { cat: "乗り物", accept: ["ヘリコプター", "へりこぷたー"], display: "ヘリコプター", image: "images/heriko.jpg" },
+        { cat: "乗り物", accept: ["オートバイ", "おーとばい"], display: "オートバイ", image: "images/otobai.jpg" },
+        { cat: "乗り物", accept: ["じてんしゃ"], display: "じてんしゃ", image: "images/jitensha.jpg" },
+        { cat: "乗り物", accept: ["せんしゃ"], display: "せんしゃ", image: "images/sensya.jpg" },
+        { cat: "乗り物", accept: ["ドローン", "どろーん"], display: "ドローン", image: "images/doron.jpg" },
+        { cat: "調味料", accept: ["マヨネーズ", "まよねーず"], display: "マヨネーズ", image: "images/mayonezu.jpg" },
+        { cat: "調味料", accept: ["しょうゆ"], display: "しょうゆ", image: "images/shoyu.jpg" },
+        { cat: "調味料", accept: ["ソース", "そーす"], display: "ソース", image: "images/sosu.jpg" },
+        { cat: "調味料", accept: ["やきにくのたれ"], display: "やきにくのたれ", image: "images/tare.jpg" },
+        { cat: "調味料", accept: ["しお"], display: "しお", image: "images/shio.jpg" },
+        { cat: "調味料", accept: ["さとう"], display: "さとう", image: "images/satou.jpg" },
+        { cat: "調味料", accept: ["こしょう"], display: "こしょう", image: "images/kosho.jpg" },
+        { cat: "調味料", accept: ["みそ"], display: "みそ", image: "images/miso.jpg" },
+        { cat: "調味料", accept: ["かつおぶし"], display: "かつおぶし", image: "images/katsuobushi.jpg" },
+        { cat: "体", accept: ["め"], display: "め", image: "images/me.jpg" },
+        { cat: "体", accept: ["はな"], display: "はな", image: "images/hana.jpg" },
+        { cat: "体", accept: ["く口", "くち"], display: "くち", image: "images/kuchi.jpg" },
+        { cat: "体", accept: ["みみ"], display: "みみ", image: "images/mimi.jpg" },
+        { cat: "体", accept: ["かた"], display: "かた", image: "images/kata.jpg" },
+        { cat: "体", accept: ["ひじ"], display: "ひじ", image: "images/hiji.jpg" },
+        { cat: "体", accept: ["ひざ"], display: "ひざ", image: "images/hiza.jpg" },
+        { cat: "体", accept: ["こし"], display: "こし", image: "images/koshi.jpg" },
+        { cat: "体", accept: ["まゆげ"], display: "まゆげ", image: "images/mayuge.jpg" },
+        { cat: "体", accept: ["まつげ"], display: "まつげ", image: "images/matsuge.jpg" },
+        { cat: "花", accept: ["ばら"], display: "ばら", image: "images/bara.jpg" },
+        { cat: "花", accept: ["はす"], display: "はす", image: "images/hasu.jpg" },
+        { cat: "花", accept: ["チューリップ", "ちゅーりっぷ"], display: "チューリップ", image: "images/churippu.jpg" },
+        { cat: "花", accept: ["さくら"], display: "さくら", image: "images/sakura.jpg" },
+        { cat: "花", accept: ["ひまわり"], display: "ひまわり", image: "images/himawari.jpg" },
+        { cat: "花", accept: ["きく"], display: "きく", image: "images/kiku.jpg" },
+        { cat: "調理器具", accept: ["ほうちょう"], display: "ほうちょう", image: "images/hocho.jpg" },
+        { cat: "調理器具", accept: ["まないた"], display: "まないた", image: "images/manaita.jpg" },
+        { cat: "調理器具", accept: ["フライパン", "ふらいぱん"], display: "フライパン", image: "images/furaipan.jpg" },
+        { cat: "調理器具", accept: ["なべ"], display: "なべ", image: "images/oonabe.jpg" },
+        { cat: "調理器具", accept: ["おたま"], display: "おたま", image: "images/otama.jpg" },
+        { cat: "調理器具", accept: ["すいはんき"], display: "すいはんき", image: "images/suihanki.jpg" },
+        { cat: "調理器具", accept: ["でんしレンジ", "でんしれんじ"], display: "でんしレンジ", image: "images/denshirenji.jpg" },
+        { cat: "調理器具", accept: ["ピーラー", "ぴーらー"], display: "ピーラー", image: "images/pira.jpg" },
+        { cat: "調理器具", accept: ["はし"], display: "はし", image: "images/hashi.jpg" },
+        { cat: "調理器具", accept: ["ちゃわん"], display: "ちゃわん", image: "images/chawan.jpg" },
+        { cat: "調理器具", accept: ["どんぶり"], display: "どんぶり", image: "images/donburi.jpg" },
+        { cat: "調理器具", accept: ["スプーン", "すぷーん"], display: "スプーン", image: "images/supun.jpg" },
+        { cat: "調理器具", accept: ["フォーク", "ふぉーく"], display: "フォーク", image: "images/foku.jpg" },
+        { cat: "調理器具", accept: ["さら"], display: "さら", image: "images/sara.jpg" },
+        { cat: "スポーツ", accept: ["やきゅう"], display: "やきゅう", image: "images/yakyu.jpg" },
+        { cat: "スポーツ", accept: ["テニス", "てにす"], display: "テニス", image: "images/tenisu.jpg" },
+        { cat: "スポーツ", accept: ["たっきゅう"], display: "たっきゅう", image: "images/takkyu.jpg" },
+        { cat: "スポーツ", accept: ["バスケットボール", "ばすけっとぼーる", "バスケット"], display: "バスケットボール", image: "images/basuketto.jpg" },
+        { cat: "スポーツ", accept: ["バドミントン", "ばどみんとん"], display: "バドミントン", image: "images/badominton.jpg" },
+        { cat: "スポーツ", accept: ["すいえい"], display: "すいえい", image: "images/suiei.jpg" },
+        { cat: "事務用品", accept: ["コピーき", "こぴーき"], display: "コピーき", image: "images/kopiki.jpg" },
+        { cat: "事務用品", accept: ["プリンター", "ぷりんたー"], display: "プリンター", image: "images/printer.jpg" },
+        { cat: "事務用品", accept: ["いんかん"], display: "いんかん", image: "images/inkan.jpg" },
+        { cat: "事務用品", accept: ["パソコン", "ぱそこん"], display: "パソコン", image: "images/pasokon.jpg" }, // ★文房具から事務用品へ移動
+        { cat: "事務用品", accept: ["マウス", "まうす"], display: "マウス", image: "images/mausu.jpg" },     // ★文房具から事務用品へ移動
+        { cat: "生活用品", accept: ["せんたくき"], display: "せんたくき", image: "images/sentakuki.jpg" },
+        { cat: "生活用品", accept: ["せんぷうき"], display: "せんぷうき", image: "images/sempuuki.jpg" },
+        { cat: "生活用品", accept: ["エアコン", "えあこん"], display: "エアコン", image: "images/eakon.jpg" },
+        { cat: "生活用品", accept: ["テレビ", "てれび"], display: "テレビ", image: "images/terebi.jpg" },
+        { cat: "生活用品", accept: ["スマホ", "すまほ"], display: "スマホ", image: "images/sumaho.jpg" },
+        { cat: "生活用品", accept: ["コップ", "こっぷ"], display: "コップ", image: "images/koppu.jpg" },
+        { cat: "生活用品", accept: ["めがね"], display: "めがね", image: "images/megane.jpg" },
+        { cat: "生活用品", accept: ["はブラシ", "はぶらし"], display: "はブラシ", image: "images/haburashi.jpg" },
+        { cat: "生活用品", accept: ["かがみ"], display: "かがみ", image: "images/kagami.jpg" },
+        { cat: "生活用品", accept: ["かんそうき"], display: "かんそうき", image: "images/kansouki.jpg" },
+        { cat: "生活用品", accept: ["そうじき"], display: "そうじき", image: "images/soujiki.jpg" },
+        { cat: "生活用品", accept: ["はみがきこ"], display: "はみがきこ", image: "images/hamigakiko.jpg" },
+        { cat: "生活用品", accept: ["つくえ"], display: "つくえ", image: "images/tsukue.jpg" },
+        { cat: "生活用品", accept: ["いす"], display: "いす", image: "images/isu.jpg" },
+        { cat: "生活用品", accept: ["テーブル", "てーぶる"], display: "テーブル", image: "images/teburu.jpg" },
+        { cat: "生活用品", accept: ["みみかき"], display: "みみかき", image: "images/mimikaki.jpg" },
+        { cat: "生活用品", accept: ["つめきり"], display: "つめきり", image: "images/tsumekiri.jpg" },
+        { cat: "文房具", accept: ["クリップ", "くりっぷ"], display: "クリップ", image: "images/kurippu.jpg" },
+        { cat: "文房具", accept: ["はさみ"], display: "はさみ", image: "images/hasami.jpg" },
+        { cat: "文房具", accept: ["えんぴつ"], display: "えんぴつ", image: "images/enpitsu.jpg" },
+        { cat: "文房具", accept: ["ボールペン", "ぼーるぺん"], display: "ボールペン", image: "images/borupen.jpg" },
+        { cat: "文房具", accept: ["けしゴム", "けしごむ"], display: "けしゴム", image: "images/keshigomu.jpg" },
+        { cat: "文房具", accept: ["ノート", "のーと"], display: "ノート", image: "images/note.jpg" },
+        { cat: "文房具", accept: ["じょうぎ"], display: "じょうぎ", image: "images/jogi.jpg" },
+        { cat: "文房具", accept: ["シャーペン", "しゃーぺん"], display: "シャーペン", image: "images/shapen.jpg" }
+    ];
+
+    let gameQuestions = [];
+    let currentIndex = 0;
+    let isGameActive = false;
+    let currentWord = null;
+    let audioCtx = null;
+    let silenceTimer = null; 
+    let shouldListen = false; 
+    let lastRecognizedText = ""; 
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ja-JP';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+    }
+
+    function kataToHira(str) {
+        return str.replace(/[\u30a1-\u30f6]/g, function(match) {
+            const chr = match.charCodeAt(0) - 0x60;
+            return String.fromCharCode(chr);
+        });
+    }
+
+    function getSimilarity(s1, s2) {
+        const len1 = s1.length;
+        const len2 = s2.length;
+        if (len1 === 0 && len2 === 0) return 1.0;
+        if (len1 === 0 || len2 === 0) return 0.0;
+
+        const matrix = [];
+        for (let i = 0; i <= len1; i++) matrix[i] = [i];
+        for (let j = 0; j <= len2; j++) matrix[0][j] = j;
+
+        for (let i = 1; i <= len1; i++) {
+            for (let j = 1; j <= len2; j++) {
+                const cost = (s1[i - 1] === s2[j - 1]) ? 0 : 1;
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j] + 1,
+                    matrix[i][j - 1] + 1,
+                    matrix[i - 1][j - 1] + cost
+                );
+            }
+        }
+        const distance = matrix[len1][len2];
+        const maxLen = Math.max(len1, len2);
+        return (maxLen - distance) / maxLen;
+    }
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSound(type) {
+        initAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        if (type === 'correct') {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(660, now);
+            osc.frequency.setValueAtTime(880, now + 0.15);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.6);
+        } else if (type === 'incorrect') {
+            const osc1 = audioCtx.createOscillator();
+            const osc2 = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc1.type = 'sawtooth'; osc2.type = 'sawtooth';
+            osc1.frequency.setValueAtTime(150, now);
+            osc2.frequency.setValueAtTime(153, now);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.setValueAtTime(0.15, now + 0.15);
+            gain.gain.setValueAtTime(0, now + 0.18);
+            gain.gain.setValueAtTime(0.15, now + 0.22);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+            osc1.connect(gain); osc2.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc1.start(now); osc2.start(now);
+            osc1.stop(now + 0.5); osc2.stop(now + 0.5);
+        }
+    }
+
+    if (recognition) {
+        recognition.onend = () => {
+            if (isGameActive) {
+                try { recognition.start(); } catch(e) {}
+            }
+        };
+
+        recognition.onsoundstart = () => { 
+            if (shouldListen) {
+                clearTimeout(silenceTimer); 
+            }
+        };
+
+        recognition.onresult = (event) => {
+            if (!shouldListen) return;
+
+            clearTimeout(silenceTimer);
+            const resultRaw = event.results[0][0].transcript.trim();
+            
+            if (!resultRaw) return;
+
+            lastRecognizedText = resultRaw;
+            document.getElementById("speech-text").innerText = `聞き取り結果: 「${resultRaw}」`;
+            document.getElementById("speech-text").className = "";
+
+            const resultHira = kataToHira(resultRaw);
+
+            let learnedDict = JSON.parse(localStorage.getItem("app_learned_speech_dict")) || {};
+            let learnedAcceptsForCurrentWord = learnedDict[currentWord.display] || [];
+            const dynamicAcceptList = [...currentWord.accept, ...learnedAcceptsForCurrentWord];
+
+            const isCorrect = dynamicAcceptList.some(ans => {
+                const ansHira = kataToHira(ans);
+                
+                if (resultHira === ansHira || resultHira.includes(ansHira) || ansHira.includes(resultHira)) {
+                    return true;
+                }
+                
+                const similarity = getSimilarity(resultHira, ansHira);
+                if (similarity >= 0.8) {
+                    return true;
+                }
+                return false;
+            });
+
+            const judgeDisplay = document.getElementById("judge-text");
+            if (isCorrect) {
+                shouldListen = false; 
+
+                judgeDisplay.innerText = "ただしい";
+                judgeDisplay.className = "correct";
+                playSound('correct');
+                
+                setTimeout(() => {
+                    if (isGameActive) {
+                        currentIndex++;
+                        nextQuestion();
+                    }
+                }, 2000);
+            } else {
+                handleIncorrectState();
+            }
+        };
+
+        recognition.onerror = (event) => {
+            if (event.error === 'no-speech' && shouldListen) {
+                handleIncorrectState();
+            }
+        };
+    }
+
+    function startGame() {
+        initAudio();
+        const category = document.getElementById("category-select").value;
+        if (category === "all") {
+            gameQuestions = [...wordList];
+        } else {
+            gameQuestions = wordList.filter(w => w.cat === category);
+        }
+
+        if (gameQuestions.length === 0) {
+            alert("該当する単語がありません。");
+            return;
+        }
+
+        for (let i = gameQuestions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [gameQuestions[i], gameQuestions[j]] = [gameQuestions[j], gameQuestions[i]];
+        }
+
+        currentIndex = 0;
+        isGameActive = true;
+
+        document.getElementById("start-btn").disabled = true;
+        document.getElementById("end-btn").disabled = false;
+        document.getElementById("category-select").disabled = true;
+
+        try { recognition.start(); } catch(e) {}
+
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        if (!isGameActive) return;
+
+        if (currentIndex >= gameQuestions.length) {
+            alert("すべての問題をクリアしました！終了します。");
+            endGame();
+            return;
+        }
+
+        currentWord = gameQuestions[currentIndex];
+        lastRecognizedText = ""; 
+        shouldListen = false; 
+        clearTimeout(silenceTimer);
+
+        document.getElementById("judge-text").innerText = "";
+        document.getElementById("speech-text").innerText = "";
+        document.getElementById("guidance-mark").innerText = "";
+        document.getElementById("retry-btn").style.display = "none";
+        document.getElementById("fix-btn").style.display = "none";
+        
+        const photoArea = document.getElementById("photo-area");
+        photoArea.innerHTML = `<img src="${currentWord.image}" alt="写真: ${currentWord.display}" onerror="this.style.display='none'; document.getElementById('photo-area').innerText='[画像ファイル未配置] ${currentWord.display}';">`;
+
+        setTimeout(() => {
+            if (!isGameActive || currentWord !== gameQuestions[currentIndex]) return;
+            playTargetAudio();
+        }, 2000);
+    }
+
+    function playTargetAudio() {
+        shouldListen = false;
+        clearTimeout(silenceTimer);
+
+        document.getElementById("speech-text").innerText = "";
+        document.getElementById("guidance-mark").innerText = "";
+
+        const utterance = new SpeechSynthesisUtterance(currentWord.display);
+        utterance.lang = 'ja-JP';
+        
+        utterance.onend = () => {
+            if (isGameActive) {
+                setTimeout(() => {
+                    if (isGameActive) activateListeningSlot();
+                }, 300);
+            }
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function activateListeningSlot() {
+        if (!isGameActive) return;
+
+        shouldListen = true; 
+        document.getElementById("speech-text").innerText = "きいています";
+        document.getElementById("speech-text").className = "listening";
+        document.getElementById("guidance-mark").innerText = "";
+
+        clearTimeout(silenceTimer);
+        silenceTimer = setTimeout(() => {
+            if (isGameActive && shouldListen && document.getElementById("judge-text").innerText === "") {
+                handleIncorrectState();
+            }
+        }, 7000);
+    }
+
+    function handleIncorrectState() {
+        shouldListen = false; 
+        clearTimeout(silenceTimer);
+
+        document.getElementById("speech-text").innerText = lastRecognizedText ? `聞き取り結果: 「${lastRecognizedText}」` : "（無音タイムアウト）";
+        document.getElementById("guidance-mark").innerText = "👂❓";
+        
+        const judgeDisplay = document.getElementById("judge-text");
+        judgeDisplay.innerText = "まちがい";
+        judgeDisplay.className = "incorrect";
+        
+        playSound('incorrect');
+        document.getElementById("retry-btn").style.display = "inline-block";
+        document.getElementById("fix-btn").style.display = "inline-block";
+    }
+
+    function requestFix() {
+        if (!currentWord) return;
+
+        let fixList = JSON.parse(localStorage.getItem("app_fix_required_words")) || [];
+        if (!fixList.includes(currentWord.display)) {
+            fixList.push(currentWord.display);
+            localStorage.setItem("app_fix_required_words", JSON.stringify(fixList));
+        }
+
+        if (lastRecognizedText) {
+            let learnedDict = JSON.parse(localStorage.getItem("app_learned_speech_dict")) || {};
+            if (!learnedDict[currentWord.display]) {
+                learnedDict[currentWord.display] = [];
+            }
+            if (!learnedDict[currentWord.display].includes(lastRecognizedText)) {
+                learnedDict[currentWord.display].push(lastRecognizedText);
+                localStorage.setItem("app_learned_speech_dict", JSON.stringify(learnedDict));
+                console.log(`[アプリ学習完了] 「${currentWord.display}」の誤変換パターンとして「${lastRecognizedText}」を記憶しました。`);
+            }
+        }
+
+        document.getElementById("fix-btn").style.display = "none";
+        document.getElementById("retry-btn").style.display = "none";
+        
+        currentIndex++;
+        nextQuestion();
+    }
+
+    function clearLearningData() {
+        if (confirm("これまでにアプリが学習した音声修正データをすべて削除しますか？")) {
+            localStorage.removeItem("app_fix_required_words");
+            localStorage.removeItem("app_learned_speech_dict");
+            alert("学習データをリセットしました。");
+            if (!isGameActive) endGame();
+        }
+    }
+
+    function listenAgain() {
+        document.getElementById("judge-text").innerText = "";
+        document.getElementById("retry-btn").style.display = "none";
+        document.getElementById("fix-btn").style.display = "none";
+        document.getElementById("guidance-mark").innerText = "";
+        playTargetAudio();
+    }
+
+    function endGame() {
+        isGameActive = false;
+        shouldListen = false;
+        clearTimeout(silenceTimer);
+
+        if (recognition) {
+            try { recognition.abort(); } catch(e) {}
+        }
+
+        document.getElementById("start-btn").disabled = false;
+        document.getElementById("end-btn").disabled = true;
+        document.getElementById("category-select").disabled = false;
+        document.getElementById("retry-btn").style.display = "none";
+        document.getElementById("fix-btn").style.display = "none";
+
+        document.getElementById("photo-area").innerHTML = "はじましょう";
+        document.getElementById("speech-text").innerText = "";
+        document.getElementById("speech-text").className = "";
+        document.getElementById("judge-text").innerText = "";
+        document.getElementById("guidance-mark").innerText = "";
+    }
+</script>
+
+</body>
+</html>
