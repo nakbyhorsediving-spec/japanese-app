@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本語音声学習アプリ（自己学習＆フライング防止安定版）</title>
+    <title>日本語音声学習アプリ（初心者向け安定版）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -77,9 +77,9 @@
             min-height: 140px;
         }
         #speech-text {
-            font-size: 20px;
-            color: #606770;
-            min-height: 28px;
+            font-size: 48px; /* ★正解表記文字を大きく（20pxから48pxへ） */
+            color: #333333;
+            min-height: 55px;
             font-weight: bold;
         }
         #judge-text {
@@ -121,7 +121,7 @@
 
         .correct { color: #28a745; }
         .incorrect { color: #dc3545; }
-        .listening { color: #007bff; animation: pulse 1.5s infinite; }
+        .listening { color: #007bff; }
 
         .footer-controls {
             position: absolute;
@@ -142,12 +142,6 @@
             font-size: 12px;
             color: #8a8d91;
             font-family: Arial, sans-serif;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
         }
     </style>
 </head>
@@ -207,7 +201,7 @@
 </div>
 
 <script>
-    // 全112単語データ配列
+    // 全てひらがな・カタカナ表記に統一したリスト
     const wordList = [
         { cat: "虫", accept: ["かぶとむし"], display: "かぶとむし", image: "images/kabutomushi.jpg" },
         { cat: "虫", accept: ["くわがた"], display: "くわがた", image: "images/kuwagata.jpg" },
@@ -216,37 +210,37 @@
         { cat: "虫", accept: ["ごきぶり"], display: "ごきぶり", image: "images/gokiburi.jpg" },
         { cat: "虫", accept: ["とんぼ"], display: "とんぼ", image: "images/tonbo.jpg" },
         { cat: "虫", accept: ["みみず"], display: "みみず", image: "images/mimizu.jpg" },
-        { cat: "衣類", accept: ["ネクタイ", "ねくたい"], display: "ネクタイ", image: "images/nekutai.jpg" },
+        { cat: "衣類", accept: ["ねくたい"], display: "ネクタイ", image: "images/nekutai.jpg" },
         { cat: "衣類", accept: ["ぼうし"], display: "ぼうし", image: "images/boushi.jpg" },
-        { cat: "衣類", accept: ["ワイシャツ", "わいしゃつ"], display: "ワイシャツ", image: "images/yshatsu.jpg" },
-        { cat: "衣類", accept: ["ベルト", "べると"], display: "ベルト", image: "images/beruto.jpg" },
-        { cat: "衣類", accept: ["ソックス", "そっくす"], display: "ソックス", image: "images/sokkusu.jpg" },
-        { cat: "衣類", accept: ["ズボン", "ずぼん"], display: "ズボン", image: "images/zubon.jpg" },
-        { cat: "衣類", accept: ["コート", "こーと"], display: "コート", image: "images/kouto.jpg" },
+        { cat: "衣類", accept: ["わいしゃつ"], display: "ワイシャツ", image: "images/yshatsu.jpg" },
+        { cat: "衣類", accept: ["べると"], display: "ベルト", image: "images/beruto.jpg" },
+        { cat: "衣類", accept: ["そっくす"], display: "ソックス", image: "images/sokkusu.jpg" },
+        { cat: "衣類", accept: ["ずぼん"], display: "ズボン", image: "images/zubon.jpg" },
+        { cat: "衣類", accept: ["こーと"], display: "コート", image: "images/kouto.jpg" },
         { cat: "動物", accept: ["さる"], display: "さる", image: "images/saru.jpg" },
         { cat: "動物", accept: ["うさぎ"], display: "うさぎ", image: "images/usagi.jpg" },
         { cat: "動物", accept: ["いぬ"], display: "いぬ", image: "images/inu.jpg" },
         { cat: "動物", accept: ["ねこ"], display: "ねこ", image: "images/neko.jpg" },
         { cat: "動物", accept: ["うま"], display: "うま", image: "images/uma.jpg" },
         { cat: "動物", accept: ["うし"], display: "うし", image: "images/ushi.jpg" },
-        { cat: "動物", accept: ["キリン", "きりん"], display: "キリン", image: "images/kirin.jpg" },
-        { cat: "動物", accept: ["ライオン", "らいおん"], display: "ライオン", image: "images/raion.jpg" },
-        { cat: "動物", accept: ["ゴリラ", "ごりら"], display: "ゴリラ", image: "images/gorira.jpg" },
+        { cat: "動物", accept: ["きりん"], display: "キリン", image: "images/kirin.jpg" },
+        { cat: "動物", accept: ["らいおん"], display: "ライオン", image: "images/raion.jpg" },
+        { cat: "動物", accept: ["ごりら"], display: "ゴリラ", image: "images/gorira.jpg" },
         { cat: "動物", accept: ["ぶた"], display: "ぶた", image: "images/buta.jpg" },
         { cat: "動物", accept: ["ぞう"], display: "ぞう", image: "images/zou.jpg" },
         { cat: "動物", accept: ["ねずみ"], display: "ねずみ", image: "images/nezumi.jpg" },
-        { cat: "国旗", accept: ["アメリカ", "あめりか"], display: "アメリカ", image: "images/america.jpg" },
-        { cat: "国旗", accept: ["イタリア", "いたりあ"], display: "イタリア", image: "images/itaria.jpg" },
-        { cat: "国旗", accept: ["フランス", "ふらんす"], display: "フランス", image: "images/france.jpg" },
-        { cat: "国旗", accept: ["ドイツ", "どいつ"], display: "ドイツ", image: "images/doitsu.jpg" },
-        { cat: "国旗", accept: ["イギリス", "いぎりす"], display: "イギリス", image: "images/england.jpg" },
-        { cat: "国旗", accept: ["スペイン", "すぺいん"], display: "スペイン", image: "images/spain.jpg" },
-        { cat: "国旗", accept: ["オランダ", "おらんだ"], display: "オランダ", image: "images/oranda.jpg" },
-        { cat: "国旗", accept: ["カナダ", "かなだ"], display: "カナダ", image: "images/canada.jpg" },
-        { cat: "国旗", accept: ["サウジアラビア", "さうじあらびあ"], display: "サウジアラビア", image: "images/saudi.jpg" },
-        { cat: "国旗", accept: ["アルゼンチン", "あるぜんちん"], display: "アルゼンチン", image: "images/arugentin.jpg" },
-        { cat: "国旗", accept: ["メキシコ", "めきしこ"], display: "メキシコ", image: "images/mexico.jpg" },
-        { cat: "国旗", accept: ["インド", "いんど"], display: "インド", image: "images/indo.jpg" },
+        { cat: "国旗", accept: ["あめりか"], display: "アメリカ", image: "images/america.jpg" },
+        { cat: "国旗", accept: ["いたりあ"], display: "イタリア", image: "images/itaria.jpg" },
+        { cat: "国旗", accept: ["ふらんす"], display: "フランス", image: "images/france.jpg" },
+        { cat: "国旗", accept: ["どいつ"], display: "ドイツ", image: "images/doitsu.jpg" },
+        { cat: "国旗", accept: ["いぎりす"], display: "イギリス", image: "images/england.jpg" },
+        { cat: "国旗", accept: ["すぺいん"], display: "スペイン", image: "images/spain.jpg" },
+        { cat: "国旗", accept: ["おらんだ"], display: "オランダ", image: "images/oranda.jpg" },
+        { cat: "国旗", accept: ["かなだ"], display: "カナダ", image: "images/canada.jpg" },
+        { cat: "国旗", accept: ["さうじあらびあ"], display: "サウジアラビア", image: "images/saudi.jpg" },
+        { cat: "国旗", accept: ["あるぜんちん"], display: "アルゼンチン", image: "images/arugentin.jpg" },
+        { cat: "国旗", accept: ["めきしこ"], display: "メキシコ", image: "images/mexico.jpg" },
+        { cat: "国旗", accept: ["いんど"], display: "インド", image: "images/indo.jpg" },
         { cat: "鳥", accept: ["にわとり"], display: "にわとり", image: "images/niwatori.jpg" },
         { cat: "鳥", accept: ["ふくろう"], display: "ふくろう", image: "images/fukurou.jpg" },
         { cat: "鳥", accept: ["すずめ"], display: "すずめ", image: "images/suzume.jpg" },
@@ -254,19 +248,19 @@
         { cat: "鳥", accept: ["はと"], display: "はと", image: "images/hato.jpg" },
         { cat: "鳥", accept: ["あひる"], display: "あひる", image: "images/ahiru.jpg" },
         { cat: "野菜", accept: ["はくさい"], display: "はくさい", image: "images/hakusai.jpg" },
-        { cat: "野菜", accept: ["キャベツ", "きゃべつ"], display: "キャベツ", image: "images/kyabetsu.jpg" },
+        { cat: "野菜", accept: ["きゃべつ"], display: "キャベツ", image: "images/kyabetsu.jpg" },
         { cat: "野菜", accept: ["れんこん"], display: "れんこん", image: "images/renkon.jpg" },
-        { cat: "野菜", accept: ["たけの子", "たけのここ", "たけの こ", "たけのこ"], display: "たけの子", image: "images/takenoko.jpg" },
+        { cat: "野菜", accept: ["たけのこ"], display: "たけのこ", image: "images/takenoko.jpg" },
         { cat: "野菜", accept: ["ほうれんそう"], display: "ほうれんそう", image: "images/hourensou.jpg" },
         { cat: "野菜", accept: ["じゃがいも"], display: "じゃがいも", image: "images/jagaimo.jpg" },
-        { cat: "野菜", accept: ["トマト", "とまと"], display: "トマト", image: "images/tomato.jpg" },
+        { cat: "野菜", accept: ["とまと"], display: "トマト", image: "images/tomato.jpg" },
         { cat: "野菜", accept: ["なすび", "なす"], display: "なすび", image: "images/nasubi.jpg" },
         { cat: "野菜", accept: ["たまねぎ"], display: "たまねぎ", image: "images/tamanegi.jpg" },
         { cat: "野菜", accept: ["にんじん"], display: "にんじん", image: "images/ninjin.jpg" },
         { cat: "野菜", accept: ["もやし"], display: "もやし", image: "images/moyashi.jpg" },
         { cat: "果物", accept: ["りんご"], display: "りんご", image: "images/ringo.jpg" },
         { cat: "果物", accept: ["みかん"], display: "みかん", image: "images/mikan.jpg" },
-        { cat: "果物", accept: ["バナナ", "ばなな"], display: "バナナ", image: "images/banana.jpg" },
+        { cat: "果物", accept: ["ばなな"], display: "バナナ", image: "images/banana.jpg" },
         { cat: "果物", accept: ["いちご"], display: "いちご", image: "images/ichigo.jpg" },
         { cat: "果物", accept: ["すいか"], display: "すいか", image: "images/suika.jpg" },
         { cat: "肉", accept: ["とりにく"], display: "とりにく", image: "images/toriniku.jpg" },
@@ -286,26 +280,26 @@
         { cat: "色", accept: ["みどり"], display: "みどり", image: "images/midori.jpg" },
         { cat: "色", accept: ["むらさき"], display: "むらさき", image: "images/murasaki.jpg" },
         { cat: "色", accept: ["くろ"], display: "くろ", image: "images/kuro.jpg" },
-        { cat: "色", accept: ["ピンク", "ぴんく"], display: "ピンク", image: "images/pinku.jpg" },
-        { cat: "色", accept: ["オレンジ", "おれんじ"], display: "オレンジ", image: "images/orange.jpg" },
+        { cat: "色", accept: ["ぴんく"], display: "ピンク", image: "images/pinku.jpg" },
+        { cat: "色", accept: ["おれんじ"], display: "オレンジ", image: "images/orange.jpg" },
         { cat: "乗り物", accept: ["きゅうきゅうしゃ"], display: "きゅうきゅうしゃ", image: "images/kyukyusya.jpg" },
         { cat: "乗り物", accept: ["しょうぼうしゃ"], display: "しょうぼうしゃ", image: "images/shobosya.jpg" },
-        { cat: "乗り物", accept: ["タクシー", "たくしー"], display: "タクシー", image: "images/takushi.jpg" },
-        { cat: "乗り物", accept: ["パトカー", "ぱとかー"], display: "パトカー", image: "images/patoka.jpg" },
-        { cat: "乗り物", accept: ["ダンプカー", "だんぷかー"], display: "ダンプカー", image: "images/danpuka.jpg" },
-        { cat: "乗り物", accept: ["クレーンしゃ", "くれーんしゃ"], display: "クレーンしゃ", image: "images/kuren_sya.jpg" },
-        { cat: "乗り物", accept: ["フェリー", "ふぇりー"], display: "フェリー", image: "images/feri.jpg" },
-        { cat: "乗り物", accept: ["ヨット", "よっと"], display: "ヨット", image: "images/yotto.jpg" },
+        { cat: "乗り物", accept: ["たくしー"], display: "タクシー", image: "images/takushi.jpg" },
+        { cat: "乗り物", accept: ["ぱとかー"], display: "パトカー", image: "images/patoka.jpg" },
+        { cat: "乗り物", accept: ["だんぷかー"], display: "ダンプカー", image: "images/danpuka.jpg" },
+        { cat: "乗り物", accept: ["くれーんしゃ"], display: "クレーンしゃ", image: "images/kuren_sya.jpg" },
+        { cat: "乗り物", accept: ["ふぇりー"], display: "フェリー", image: "images/feri.jpg" },
+        { cat: "乗り物", accept: ["よっと"], display: "ヨット", image: "images/yotto.jpg" },
         { cat: "乗り物", accept: ["しんかんせん"], display: "しんかんせん", image: "images/shinkansen.jpg" },
         { cat: "乗り物", accept: ["ひこうき"], display: "ひこうき", image: "images/hikouki.jpg" },
-        { cat: "乗り物", accept: ["ヘリコプター", "へりこぷたー"], display: "ヘリコプター", image: "images/heriko.jpg" },
-        { cat: "乗り物", accept: ["オートバイ", "おーとばい"], display: "オートバイ", image: "images/otobai.jpg" },
+        { cat: "乗り物", accept: ["へりこぷたー"], display: "ヘリコプター", image: "images/heriko.jpg" },
+        { cat: "乗り物", accept: ["おーとばい"], display: "オートバイ", image: "images/otobai.jpg" },
         { cat: "乗り物", accept: ["じてんしゃ"], display: "じてんしゃ", image: "images/jitensha.jpg" },
         { cat: "乗り物", accept: ["せんしゃ"], display: "せんしゃ", image: "images/sensya.jpg" },
-        { cat: "乗り物", accept: ["ドローン", "どろーん"], display: "ドローン", image: "images/doron.jpg" },
-        { cat: "調味料", accept: ["マヨネーズ", "まよねーず"], display: "マヨネーズ", image: "images/mayonezu.jpg" },
+        { cat: "乗り物", accept: ["どろーん"], display: "ドローン", image: "images/doron.jpg" },
+        { cat: "調味料", accept: ["まよねーず"], display: "マヨネーズ", image: "images/mayonezu.jpg" },
         { cat: "調味料", accept: ["しょうゆ"], display: "しょうゆ", image: "images/shoyu.jpg" },
-        { cat: "調味料", accept: ["ソース", "そーす"], display: "ソース", image: "images/sosu.jpg" },
+        { cat: "調味料", accept: ["そーす"], display: "ソース", image: "images/sosu.jpg" },
         { cat: "調味料", accept: ["やきにくのたれ"], display: "やきにくのたれ", image: "images/tare.jpg" },
         { cat: "調味料", accept: ["しお"], display: "しお", image: "images/shio.jpg" },
         { cat: "調味料", accept: ["さとう"], display: "さとう", image: "images/satou.jpg" },
@@ -314,7 +308,7 @@
         { cat: "調味料", accept: ["かつおぶし"], display: "かつおぶし", image: "images/katsuobushi.jpg" },
         { cat: "体", accept: ["め"], display: "め", image: "images/me.jpg" },
         { cat: "体", accept: ["はな"], display: "はな", image: "images/hana.jpg" },
-        { cat: "体", accept: ["く口", "くち"], display: "くち", image: "images/kuchi.jpg" },
+        { cat: "体", accept: ["くち"], display: "くち", image: "images/kuchi.jpg" },
         { cat: "体", accept: ["みみ"], display: "みみ", image: "images/mimi.jpg" },
         { cat: "体", accept: ["かた"], display: "かた", image: "images/kata.jpg" },
         { cat: "体", accept: ["ひじ"], display: "ひじ", image: "images/hiji.jpg" },
@@ -324,60 +318,60 @@
         { cat: "体", accept: ["まつげ"], display: "まつげ", image: "images/matsuge.jpg" },
         { cat: "花", accept: ["ばら"], display: "ばら", image: "images/bara.jpg" },
         { cat: "花", accept: ["はす"], display: "はす", image: "images/hasu.jpg" },
-        { cat: "花", accept: ["チューリップ", "ちゅーりっぷ"], display: "チューリップ", image: "images/churippu.jpg" },
+        { cat: "花", accept: ["ちゅーりっぷ"], display: "チューリップ", image: "images/churippu.jpg" },
         { cat: "花", accept: ["さくら"], display: "さくら", image: "images/sakura.jpg" },
         { cat: "花", accept: ["ひまわり"], display: "ひまわり", image: "images/himawari.jpg" },
         { cat: "花", accept: ["きく"], display: "きく", image: "images/kiku.jpg" },
         { cat: "調理器具", accept: ["ほうちょう"], display: "ほうちょう", image: "images/hocho.jpg" },
         { cat: "調理器具", accept: ["まないた"], display: "まないた", image: "images/manaita.jpg" },
-        { cat: "調理器具", accept: ["フライパン", "ふらいぱん"], display: "フライパン", image: "images/furaipan.jpg" },
+        { cat: "調理器具", accept: ["ふらいぱん"], display: "フライパン", image: "images/furaipan.jpg" },
         { cat: "調理器具", accept: ["なべ"], display: "なべ", image: "images/oonabe.jpg" },
         { cat: "調理器具", accept: ["おたま"], display: "おたま", image: "images/otama.jpg" },
         { cat: "調理器具", accept: ["すいはんき"], display: "すいはんき", image: "images/suihanki.jpg" },
-        { cat: "調理器具", accept: ["でんしレンジ", "でんしれんじ"], display: "でんしレンジ", image: "images/denshirenji.jpg" },
-        { cat: "調理器具", accept: ["ピーラー", "ぴーらー"], display: "ピーラー", image: "images/pira.jpg" },
+        { cat: "調理器具", accept: ["でんしれんじ"], display: "でんしれんじ", image: "images/denshirenji.jpg" },
+        { cat: "調理器具", accept: ["ぴーらー"], display: "ピーラー", image: "images/pira.jpg" },
         { cat: "調理器具", accept: ["はし"], display: "はし", image: "images/hashi.jpg" },
         { cat: "調理器具", accept: ["ちゃわん"], display: "ちゃわん", image: "images/chawan.jpg" },
         { cat: "調理器具", accept: ["どんぶり"], display: "どんぶり", image: "images/donburi.jpg" },
-        { cat: "調理器具", accept: ["スプーン", "すぷーん"], display: "スプーン", image: "images/supun.jpg" },
-        { cat: "調理器具", accept: ["フォーク", "ふぉーく"], display: "フォーク", image: "images/foku.jpg" },
+        { cat: "調理器具", accept: ["すぷーん"], display: "スプーン", image: "images/supun.jpg" },
+        { cat: "調理器具", accept: ["ふぉーく"], display: "フォーク", image: "images/foku.jpg" },
         { cat: "調理器具", accept: ["さら"], display: "さら", image: "images/sara.jpg" },
         { cat: "スポーツ", accept: ["やきゅう"], display: "やきゅう", image: "images/yakyu.jpg" },
-        { cat: "スポーツ", accept: ["テニス", "てにす"], display: "テニス", image: "images/tenisu.jpg" },
+        { cat: "スポーツ", accept: ["てにす"], display: "テニス", image: "images/tenisu.jpg" },
         { cat: "スポーツ", accept: ["たっきゅう"], display: "たっきゅう", image: "images/takkyu.jpg" },
-        { cat: "スポーツ", accept: ["バスケットボール", "ばすけっとぼーる", "バスケット"], display: "バスケットボール", image: "images/basuketto.jpg" },
-        { cat: "スポーツ", accept: ["バドミントン", "ばどみんとん"], display: "バドミントン", image: "images/badominton.jpg" },
+        { cat: "スポーツ", accept: ["ばすけっとぼーる", "ばすけっと"], display: "バスケットボール", image: "images/basuketto.jpg" },
+        { cat: "スポーツ", accept: ["ばどみんとん"], display: "バドミントン", image: "images/badominton.jpg" },
         { cat: "スポーツ", accept: ["すいえい"], display: "すいえい", image: "images/suiei.jpg" },
-        { cat: "事務用品", accept: ["コピーき", "こぴーき"], display: "コピーき", image: "images/kopiki.jpg" },
-        { cat: "事務用品", accept: ["プリンター", "ぷりんたー"], display: "プリンター", image: "images/printer.jpg" },
+        { cat: "事務用品", accept: ["こぴーき"], display: "コピーき", image: "images/kopiki.jpg" },
+        { cat: "事務用品", accept: ["ぷりんたー"], display: "プリンター", image: "images/printer.jpg" },
         { cat: "事務用品", accept: ["いんかん"], display: "いんかん", image: "images/inkan.jpg" },
-        { cat: "事務用品", accept: ["パソコン", "ぱそこん"], display: "パソコン", image: "images/pasokon.jpg" }, // ★文房具から事務用品へ移動
-        { cat: "事務用品", accept: ["マウス", "まうす"], display: "マウス", image: "images/mausu.jpg" },     // ★文房具から事務用品へ移動
+        { cat: "事務用品", accept: ["ぱそこん"], display: "パソコン", image: "images/pasokon.jpg" }, 
+        { cat: "事務用品", accept: ["まうす"], display: "マウス", image: "images/mausu.jpg" },
         { cat: "生活用品", accept: ["せんたくき"], display: "せんたくき", image: "images/sentakuki.jpg" },
         { cat: "生活用品", accept: ["せんぷうき"], display: "せんぷうき", image: "images/sempuuki.jpg" },
-        { cat: "生活用品", accept: ["エアコン", "えあこん"], display: "エアコン", image: "images/eakon.jpg" },
-        { cat: "生活用品", accept: ["テレビ", "てれび"], display: "テレビ", image: "images/terebi.jpg" },
-        { cat: "生活用品", accept: ["スマホ", "すまほ"], display: "スマホ", image: "images/sumaho.jpg" },
-        { cat: "生活用品", accept: ["コップ", "こっぷ"], display: "コップ", image: "images/koppu.jpg" },
+        { cat: "生活用品", accept: ["えあこん"], display: "エアコン", image: "images/eakon.jpg" },
+        { cat: "生活用品", accept: ["てれび"], display: "テレビ", image: "images/terebi.jpg" },
+        { cat: "生活用品", accept: ["すまほ"], display: "スマホ", image: "images/sumaho.jpg" },
+        { cat: "生活用品", accept: ["こっぷ"], display: "コップ", image: "images/koppu.jpg" },
         { cat: "生活用品", accept: ["めがね"], display: "めがね", image: "images/megane.jpg" },
-        { cat: "生活用品", accept: ["はブラシ", "はぶらし"], display: "はブラシ", image: "images/haburashi.jpg" },
+        { cat: "生活用品", accept: ["はぶらし"], display: "はブラシ", image: "images/haburashi.jpg" },
         { cat: "生活用品", accept: ["かがみ"], display: "かがみ", image: "images/kagami.jpg" },
         { cat: "生活用品", accept: ["かんそうき"], display: "かんそうき", image: "images/kansouki.jpg" },
         { cat: "生活用品", accept: ["そうじき"], display: "そうじき", image: "images/soujiki.jpg" },
         { cat: "生活用品", accept: ["はみがきこ"], display: "はみがきこ", image: "images/hamigakiko.jpg" },
         { cat: "生活用品", accept: ["つくえ"], display: "つくえ", image: "images/tsukue.jpg" },
         { cat: "生活用品", accept: ["いす"], display: "いす", image: "images/isu.jpg" },
-        { cat: "生活用品", accept: ["テーブル", "てーぶる"], display: "テーブル", image: "images/teburu.jpg" },
+        { cat: "生活用品", accept: ["てーぶる"], display: "テーブル", image: "images/teburu.jpg" },
         { cat: "生活用品", accept: ["みみかき"], display: "みみかき", image: "images/mimikaki.jpg" },
         { cat: "生活用品", accept: ["つめきり"], display: "つめきり", image: "images/tsumekiri.jpg" },
-        { cat: "文房具", accept: ["クリップ", "くりっぷ"], display: "クリップ", image: "images/kurippu.jpg" },
+        { cat: "文房具", accept: ["くりっぷ"], display: "クリップ", image: "images/kurippu.jpg" },
         { cat: "文房具", accept: ["はさみ"], display: "はさみ", image: "images/hasami.jpg" },
         { cat: "文房具", accept: ["えんぴつ"], display: "えんぴつ", image: "images/enpitsu.jpg" },
-        { cat: "文房具", accept: ["ボールペン", "ぼーるぺん"], display: "ボールペン", image: "images/borupen.jpg" },
-        { cat: "文房具", accept: ["けしゴム", "けしごむ"], display: "けしゴム", image: "images/keshigomu.jpg" },
-        { cat: "文房具", accept: ["ノート", "のーと"], display: "ノート", image: "images/note.jpg" },
+        { cat: "文房具", accept: ["ぼーるぺん"], display: "ボールペン", image: "images/borupen.jpg" },
+        { cat: "文房具", accept: ["けしごむ"], display: "けしゴム", image: "images/keshigomu.jpg" },
+        { cat: "文房具", accept: ["のーと"], display: "ノート", image: "images/note.jpg" },
         { cat: "文房具", accept: ["じょうぎ"], display: "じょうぎ", image: "images/jogi.jpg" },
-        { cat: "文房具", accept: ["シャーペン", "しゃーぺん"], display: "シャーペン", image: "images/shapen.jpg" }
+        { cat: "文房具", accept: ["しゃーぺん"], display: "シャーペン", image: "images/shapen.jpg" }
     ];
 
     let gameQuestions = [];
@@ -387,7 +381,6 @@
     let audioCtx = null;
     let silenceTimer = null; 
     let shouldListen = false; 
-    let lastRecognizedText = ""; 
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
@@ -398,6 +391,7 @@
         recognition.maxAlternatives = 1;
     }
 
+    // カタカナをひらがなに変換する関数
     function kataToHira(str) {
         return str.replace(/[\u30a1-\u30f6]/g, function(match) {
             const chr = match.charCodeAt(0) - 0x60;
@@ -405,29 +399,11 @@
         });
     }
 
-    function getSimilarity(s1, s2) {
-        const len1 = s1.length;
-        const len2 = s2.length;
-        if (len1 === 0 && len2 === 0) return 1.0;
-        if (len1 === 0 || len2 === 0) return 0.0;
-
-        const matrix = [];
-        for (let i = 0; i <= len1; i++) matrix[i] = [i];
-        for (let j = 0; j <= len2; j++) matrix[0][j] = j;
-
-        for (let i = 1; i <= len1; i++) {
-            for (let j = 1; j <= len2; j++) {
-                const cost = (s1[i - 1] === s2[j - 1]) ? 0 : 1;
-                matrix[i][j] = Math.min(
-                    matrix[i - 1][j] + 1,
-                    matrix[i][j - 1] + 1,
-                    matrix[i - 1][j - 1] + cost
-                );
-            }
-        }
-        const distance = matrix[len1][len2];
-        const maxLen = Math.max(len1, len2);
-        return (maxLen - distance) / maxLen;
+    // 漢字や余計な記号をすべて取り除き、純粋なひらがな/カタカナの音の並びだけにする関数（★イントネーションを完全無視する仕様）
+    function cleanTextToSound(str) {
+        let text = kataToHira(str);
+        // ひらがな、カタカナ、長音符(ー) 以外の文字（漢字やアルファベット、句読点、スペース）を完全に消去
+        return text.replace(/[^\u3041-\u3093\u30a1-\u30f6ー]/g, "");
     }
 
     function initAudio() {
@@ -489,28 +465,20 @@
 
             clearTimeout(silenceTimer);
             const resultRaw = event.results[0][0].transcript.trim();
-            
             if (!resultRaw) return;
 
-            lastRecognizedText = resultRaw;
-            document.getElementById("speech-text").innerText = `聞き取り結果: 「${resultRaw}」`;
-            document.getElementById("speech-text").className = "";
-
-            const resultHira = kataToHira(resultRaw);
+            // ★イントネーションや余計な文字を排除し、純粋な「ひらがなの音の並び」にする
+            const userSound = cleanTextToSound(resultRaw);
+            if (!userSound) return;
 
             let learnedDict = JSON.parse(localStorage.getItem("app_learned_speech_dict")) || {};
             let learnedAcceptsForCurrentWord = learnedDict[currentWord.display] || [];
             const dynamicAcceptList = [...currentWord.accept, ...learnedAcceptsForCurrentWord];
 
+            // ユーザーの発音が、正解リストのどれかと部分一致、または完全一致するか判定
             const isCorrect = dynamicAcceptList.some(ans => {
-                const ansHira = kataToHira(ans);
-                
-                if (resultHira === ansHira || resultHira.includes(ansHira) || ansHira.includes(resultHira)) {
-                    return true;
-                }
-                
-                const similarity = getSimilarity(resultHira, ansHira);
-                if (similarity >= 0.8) {
+                const targetSound = cleanTextToSound(ans);
+                if (userSound === targetSound || userSound.includes(targetSound) || targetSound.includes(userSound)) {
                     return true;
                 }
                 return false;
@@ -520,6 +488,8 @@
             if (isCorrect) {
                 shouldListen = false; 
 
+                // 正解の時は大きな文字をグリーンにする
+                document.getElementById("speech-text").className = "correct";
                 judgeDisplay.innerText = "ただしい";
                 judgeDisplay.className = "correct";
                 playSound('correct');
@@ -583,12 +553,15 @@
         }
 
         currentWord = gameQuestions[currentIndex];
-        lastRecognizedText = ""; 
         shouldListen = false; 
         clearTimeout(silenceTimer);
 
         document.getElementById("judge-text").innerText = "";
-        document.getElementById("speech-text").innerText = "";
+        
+        // ★最初の段階から正解のひらがな・カタカナを大きく表示しておく
+        document.getElementById("speech-text").innerText = currentWord.display;
+        document.getElementById("speech-text").className = "";
+        
         document.getElementById("guidance-mark").innerText = "";
         document.getElementById("retry-btn").style.display = "none";
         document.getElementById("fix-btn").style.display = "none";
@@ -605,8 +578,6 @@
     function playTargetAudio() {
         shouldListen = false;
         clearTimeout(silenceTimer);
-
-        document.getElementById("speech-text").innerText = "";
         document.getElementById("guidance-mark").innerText = "";
 
         const utterance = new SpeechSynthesisUtterance(currentWord.display);
@@ -627,8 +598,7 @@
         if (!isGameActive) return;
 
         shouldListen = true; 
-        document.getElementById("speech-text").innerText = "きいています";
-        document.getElementById("speech-text").className = "listening";
+        document.getElementById("speech-text").className = "listening"; // 聞き取り中は青色にする
         document.getElementById("guidance-mark").innerText = "";
 
         clearTimeout(silenceTimer);
@@ -643,7 +613,7 @@
         shouldListen = false; 
         clearTimeout(silenceTimer);
 
-        document.getElementById("speech-text").innerText = lastRecognizedText ? `聞き取り結果: 「${lastRecognizedText}」` : "（無音タイムアウト）";
+        document.getElementById("speech-text").className = "incorrect"; // 間違いの時は赤色にする
         document.getElementById("guidance-mark").innerText = "👂❓";
         
         const judgeDisplay = document.getElementById("judge-text");
@@ -662,18 +632,6 @@
         if (!fixList.includes(currentWord.display)) {
             fixList.push(currentWord.display);
             localStorage.setItem("app_fix_required_words", JSON.stringify(fixList));
-        }
-
-        if (lastRecognizedText) {
-            let learnedDict = JSON.parse(localStorage.getItem("app_learned_speech_dict")) || {};
-            if (!learnedDict[currentWord.display]) {
-                learnedDict[currentWord.display] = [];
-            }
-            if (!learnedDict[currentWord.display].includes(lastRecognizedText)) {
-                learnedDict[currentWord.display].push(lastRecognizedText);
-                localStorage.setItem("app_learned_speech_dict", JSON.stringify(learnedDict));
-                console.log(`[アプリ学習完了] 「${currentWord.display}」の誤変換パターンとして「${lastRecognizedText}」を記憶しました。`);
-            }
         }
 
         document.getElementById("fix-btn").style.display = "none";
@@ -697,6 +655,10 @@
         document.getElementById("retry-btn").style.display = "none";
         document.getElementById("fix-btn").style.display = "none";
         document.getElementById("guidance-mark").innerText = "";
+        
+        document.getElementById("speech-text").innerText = currentWord.display;
+        document.getElementById("speech-text").className = "";
+        
         playTargetAudio();
     }
 
