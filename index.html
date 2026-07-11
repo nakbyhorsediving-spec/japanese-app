@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本語音声学習アプリ（状態表示・判定後正解版）</title>
+    <title>日本語音声学習アプリ（カウンター付き）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -16,7 +16,7 @@
             user-select: none;
         }
         #game-container {
-            width: 800px;
+            width: 850px;
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -50,6 +50,25 @@
             display: flex;
             gap: 10px;
         }
+        
+        /* 画像表示部とカウンターを横並びにするためのコンテナ */
+        .stage-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        /* 左余白に配置する問題数カウンター */
+        #counter-display {
+            width: 100px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #4b4f56;
+            text-align: center;
+            font-family: monospace, sans-serif;
+        }
         #photo-area {
             width: 500px;
             height: 350px;
@@ -69,6 +88,7 @@
             height: 100%;
             object-fit: cover;
         }
+        
         .status-area {
             display: flex;
             flex-direction: column;
@@ -182,7 +202,10 @@
         </div>
     </div>
 
-    <div id="photo-area">はじましょう</div>
+    <div class="stage-area">
+        <div id="counter-display"></div>
+        <div id="photo-area">はじましょう</div>
+    </div>
 
     <div class="status-area">
         <div id="judge-text"></div>
@@ -369,7 +392,7 @@
         { cat: "文房具", accept: ["えんぴつ"], display: "えんぴつ", image: "images/enpitsu.jpg" },
         { cat: "文房具", accept: ["ぼーるぺん"], display: "ボールペン", image: "images/borupen.jpg" },
         { cat: "文房具", accept: ["けしごむ"], display: "けしゴム", image: "images/keshigomu.jpg" },
-        { cat: "文房具", accept: ["のーと"], display: "ノート", image: "note.jpg" },
+        { cat: "文房具", accept: ["のーと"], display: "ノート", image: "images/note.jpg" },
         { cat: "文房具", accept: ["じょうぎ"], display: "じょうぎ", image: "images/jogi.jpg" },
         { cat: "文房具", accept: ["しゃーぺん"], display: "シャーペン", image: "images/shapen.jpg" }
     ];
@@ -382,7 +405,7 @@
     let silenceTimer = null; 
     let shouldListen = false; 
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitRecognition || window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
@@ -451,7 +474,6 @@
             }
         };
 
-        // ユーザーが声を発し始めたらタイマーをクリア
         recognition.onsoundstart = () => { 
             if (shouldListen) {
                 clearTimeout(silenceTimer); 
@@ -461,7 +483,6 @@
         recognition.onresult = (event) => {
             if (!shouldListen) return;
 
-            // ★【聞き取り終了】判定処理へ移るため、「かんがえています」に表示を変更
             shouldListen = false;
             clearTimeout(silenceTimer);
             document.getElementById("guidance-mark").innerText = "かんがえています";
@@ -490,7 +511,6 @@
                 return false;
             });
 
-            // 1秒の考えるタメを作ってから結果（正誤判定）を表示
             setTimeout(() => {
                 const judgeDisplay = document.getElementById("judge-text");
                 const speechDisplay = document.getElementById("speech-text");
@@ -498,7 +518,6 @@
                 if (isCorrect) {
                     document.getElementById("guidance-mark").innerText = "";
 
-                    // ★【正誤判定と同時】ここで初めて正しい文字を大きく表示
                     speechDisplay.innerText = currentWord.display; 
                     speechDisplay.className = "correct";
                     
@@ -522,7 +541,6 @@
             if (shouldListen) {
                 shouldListen = false;
                 clearTimeout(silenceTimer);
-                // エラー時も一旦「かんがえています」を挟んでから間違い判定へ
                 document.getElementById("guidance-mark").innerText = "かんがえています";
                 setTimeout(() => {
                     handleIncorrectState();
@@ -575,12 +593,14 @@
         shouldListen = false; 
         clearTimeout(silenceTimer);
 
+        // ★【問題カウンター更新】 分子（何問目か） / 分母（現在のフィルター内の総数）
+        const displayNum = currentIndex + 1;
+        const totalNum = gameQuestions.length;
+        document.getElementById("counter-display").innerText = displayNum + " / " + totalNum;
+
         document.getElementById("judge-text").innerText = "";
-        
-        // ★【画像提示時】文字は絶対に表示しません（空文字にリセット）
         document.getElementById("speech-text").innerText = "";
         document.getElementById("speech-text").className = "";
-        
         document.getElementById("guidance-mark").innerText = "";
         document.getElementById("retry-btn").style.display = "none";
         document.getElementById("fix-btn").style.display = "none";
@@ -617,9 +637,7 @@
         if (!isGameActive) return;
 
         shouldListen = true; 
-        // 文字枠は空のまま
         document.getElementById("speech-text").innerText = ""; 
-        // ★【聞き取り開始】「きいています」を表示
         document.getElementById("guidance-mark").innerText = "きいています";
 
         clearTimeout(silenceTimer);
@@ -639,7 +657,6 @@
         clearTimeout(silenceTimer);
         document.getElementById("guidance-mark").innerText = "";
 
-        // ★【正誤判定と同時】「まちがい」が確定したため、ここで初めて文字を表示します。
         const speechDisplay = document.getElementById("speech-text");
         speechDisplay.innerText = currentWord.display;
         speechDisplay.className = "incorrect"; 
@@ -653,6 +670,7 @@
         document.getElementById("fix-btn").style.display = "inline-block";
     }
 
+    // 「アプリ判定修正要」が押された際の挙動
     function requestFix() {
         if (!currentWord) return;
 
@@ -705,6 +723,7 @@
         document.getElementById("retry-btn").style.display = "none";
         document.getElementById("fix-btn").style.display = "none";
 
+        document.getElementById("counter-display").innerText = "";
         document.getElementById("photo-area").innerHTML = "はじましょう";
         document.getElementById("speech-text").innerText = "";
         document.getElementById("speech-text").className = "";
