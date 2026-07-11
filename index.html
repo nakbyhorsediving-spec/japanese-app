@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本語音声学習アプリ（判定後のみ正解表示版）</title>
+    <title>日本語音声学習アプリ（状態表示・判定後正解版）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -88,9 +88,11 @@
             min-height: 55px;
         }
         #guidance-mark {
-            font-size: 48px;
-            min-height: 60px;
-            line-height: 60px;
+            font-size: 32px;
+            color: #555555;
+            font-weight: bold;
+            min-height: 40px;
+            line-height: 40px;
         }
         .action-area {
             display: flex;
@@ -367,7 +369,7 @@
         { cat: "文房具", accept: ["えんぴつ"], display: "えんぴつ", image: "images/enpitsu.jpg" },
         { cat: "文房具", accept: ["ぼーるぺん"], display: "ボールペン", image: "images/borupen.jpg" },
         { cat: "文房具", accept: ["けしごむ"], display: "けしゴム", image: "images/keshigomu.jpg" },
-        { cat: "文房具", accept: ["のーと"], display: "ノート", image: "images/note.jpg" },
+        { cat: "文房具", accept: ["のーと"], display: "ノート", image: "note.jpg" },
         { cat: "文房具", accept: ["じょうぎ"], display: "じょうぎ", image: "images/jogi.jpg" },
         { cat: "文房具", accept: ["しゃーぺん"], display: "シャーペン", image: "images/shapen.jpg" }
     ];
@@ -380,7 +382,7 @@
     let silenceTimer = null; 
     let shouldListen = false; 
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitRecognition || window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = null;
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
@@ -449,6 +451,7 @@
             }
         };
 
+        // ユーザーが声を発し始めたらタイマーをクリア
         recognition.onsoundstart = () => { 
             if (shouldListen) {
                 clearTimeout(silenceTimer); 
@@ -458,12 +461,22 @@
         recognition.onresult = (event) => {
             if (!shouldListen) return;
 
+            // ★【聞き取り終了】判定処理へ移るため、「かんがえています」に表示を変更
+            shouldListen = false;
             clearTimeout(silenceTimer);
+            document.getElementById("guidance-mark").innerText = "かんがえています";
+
             const resultRaw = event.results[0][0].transcript.trim();
-            if (!resultRaw) return;
+            if (!resultRaw) {
+                handleIncorrectState();
+                return;
+            }
 
             const userSound = cleanTextToSound(resultRaw);
-            if (!userSound) return;
+            if (!userSound) {
+                handleIncorrectState();
+                return;
+            }
 
             let learnedDict = JSON.parse(localStorage.getItem("app_learned_speech_dict")) || {};
             let learnedAcceptsForCurrentWord = learnedDict[currentWord.display] || [];
@@ -477,34 +490,43 @@
                 return false;
             });
 
-            const judgeDisplay = document.getElementById("judge-text");
-            const speechDisplay = document.getElementById("speech-text");
+            // 1秒の考えるタメを作ってから結果（正誤判定）を表示
+            setTimeout(() => {
+                const judgeDisplay = document.getElementById("judge-text");
+                const speechDisplay = document.getElementById("speech-text");
 
-            if (isCorrect) {
-                shouldListen = false; 
+                if (isCorrect) {
+                    document.getElementById("guidance-mark").innerText = "";
 
-                // ★【正誤判定と同時】正解判定が確定したため、ここで初めて文字を表示します。
-                speechDisplay.innerText = currentWord.display; 
-                speechDisplay.className = "correct";
-                
-                judgeDisplay.innerText = "ただしい";
-                judgeDisplay.className = "correct";
-                playSound('correct');
-                
-                setTimeout(() => {
-                    if (isGameActive) {
-                        currentIndex++;
-                        nextQuestion();
-                    }
-                }, 2000);
-            } else {
-                handleIncorrectState();
-            }
+                    // ★【正誤判定と同時】ここで初めて正しい文字を大きく表示
+                    speechDisplay.innerText = currentWord.display; 
+                    speechDisplay.className = "correct";
+                    
+                    judgeDisplay.innerText = "ただしい";
+                    judgeDisplay.className = "correct";
+                    playSound('correct');
+                    
+                    setTimeout(() => {
+                        if (isGameActive) {
+                            currentIndex++;
+                            nextQuestion();
+                        }
+                    }, 2000);
+                } else {
+                    handleIncorrectState();
+                }
+            }, 800);
         };
 
         recognition.onerror = (event) => {
-            if (event.error === 'no-speech' && shouldListen) {
-                handleIncorrectState();
+            if (shouldListen) {
+                shouldListen = false;
+                clearTimeout(silenceTimer);
+                // エラー時も一旦「かんがえています」を挟んでから間違い判定へ
+                document.getElementById("guidance-mark").innerText = "かんがえています";
+                setTimeout(() => {
+                    handleIncorrectState();
+                }, 600);
             }
         };
     }
@@ -555,7 +577,7 @@
 
         document.getElementById("judge-text").innerText = "";
         
-        // ★【画像提示時】文字は絶対に「空」にリセットし、表示させません。
+        // ★【画像提示時】文字は絶対に表示しません（空文字にリセット）
         document.getElementById("speech-text").innerText = "";
         document.getElementById("speech-text").className = "";
         
@@ -577,7 +599,6 @@
         clearTimeout(silenceTimer);
         document.getElementById("guidance-mark").innerText = "";
         
-        // 音声を再生する際も、文字枠は一切触らず（空のまま）にします
         const utterance = new SpeechSynthesisUtterance(currentWord.display);
         utterance.lang = 'ja-JP';
         
@@ -596,14 +617,19 @@
         if (!isGameActive) return;
 
         shouldListen = true; 
-        // 聞き取り中も、文字枠は完全に空のまま維持します
+        // 文字枠は空のまま
         document.getElementById("speech-text").innerText = ""; 
-        document.getElementById("guidance-mark").innerText = "";
+        // ★【聞き取り開始】「きいています」を表示
+        document.getElementById("guidance-mark").innerText = "きいています";
 
         clearTimeout(silenceTimer);
         silenceTimer = setTimeout(() => {
             if (isGameActive && shouldListen && document.getElementById("judge-text").innerText === "") {
-                handleIncorrectState();
+                shouldListen = false;
+                document.getElementById("guidance-mark").innerText = "かんがえています";
+                setTimeout(() => {
+                    handleIncorrectState();
+                }, 600);
             }
         }, 7000);
     }
@@ -611,13 +637,12 @@
     function handleIncorrectState() {
         shouldListen = false; 
         clearTimeout(silenceTimer);
+        document.getElementById("guidance-mark").innerText = "";
 
         // ★【正誤判定と同時】「まちがい」が確定したため、ここで初めて文字を表示します。
         const speechDisplay = document.getElementById("speech-text");
         speechDisplay.innerText = currentWord.display;
         speechDisplay.className = "incorrect"; 
-        
-        document.getElementById("guidance-mark").innerText = "👂❓";
         
         const judgeDisplay = document.getElementById("judge-text");
         judgeDisplay.innerText = "まちがい";
@@ -659,7 +684,6 @@
         document.getElementById("fix-btn").style.display = "none";
         document.getElementById("guidance-mark").innerText = "";
         
-        // 再度聞くときも、判定が出るまでは文字枠を空にします
         document.getElementById("speech-text").innerText = "";
         document.getElementById("speech-text").className = "";
         
