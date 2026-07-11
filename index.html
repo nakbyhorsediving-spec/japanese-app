@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本語音声学習アプリ（初心者向け・判定時のみ正解表示版）</title>
+    <title>日本語音声学習アプリ（判定後のみ正解表示版）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -483,7 +483,7 @@
             if (isCorrect) {
                 shouldListen = false; 
 
-                // ★【正解判定時のみ表示】判定が出たら、初めて文字を画面に大きく表示する
+                // ★【正誤判定と同時】正解判定が確定したため、ここで初めて文字を表示します。
                 speechDisplay.innerText = currentWord.display; 
                 speechDisplay.className = "correct";
                 
@@ -555,7 +555,7 @@
 
         document.getElementById("judge-text").innerText = "";
         
-        // ★【最重要】出題時（解いている最中）は、文字を絶対に空っぽ（非表示）にする
+        // ★【画像提示時】文字は絶対に「空」にリセットし、表示させません。
         document.getElementById("speech-text").innerText = "";
         document.getElementById("speech-text").className = "";
         
@@ -576,7 +576,8 @@
         shouldListen = false;
         clearTimeout(silenceTimer);
         document.getElementById("guidance-mark").innerText = "";
-
+        
+        // 音声を再生する際も、文字枠は一切触らず（空のまま）にします
         const utterance = new SpeechSynthesisUtterance(currentWord.display);
         utterance.lang = 'ja-JP';
         
@@ -595,7 +596,7 @@
         if (!isGameActive) return;
 
         shouldListen = true; 
-        // 聞き取り中も、正解の文字はまだ隠したままにします
+        // 聞き取り中も、文字枠は完全に空のまま維持します
         document.getElementById("speech-text").innerText = ""; 
         document.getElementById("guidance-mark").innerText = "";
 
@@ -611,7 +612,7 @@
         shouldListen = false; 
         clearTimeout(silenceTimer);
 
-        // ★【間違い判定時も表示】聞き取りに失敗したときも、答えを教えてあげるために正しい文字を表示する
+        // ★【正誤判定と同時】「まちがい」が確定したため、ここで初めて文字を表示します。
         const speechDisplay = document.getElementById("speech-text");
         speechDisplay.innerText = currentWord.display;
         speechDisplay.className = "incorrect"; 
@@ -658,7 +659,7 @@
         document.getElementById("fix-btn").style.display = "none";
         document.getElementById("guidance-mark").innerText = "";
         
-        // もういちど聴くときも、判定が出るまでは文字を一旦消します
+        // 再度聞くときも、判定が出るまでは文字枠を空にします
         document.getElementById("speech-text").innerText = "";
         document.getElementById("speech-text").className = "";
         
