@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日本語音声学習アプリ（カウンター＆判定強化完全版）</title>
+    <title>日本語音声学習アプリ（判定精度・厳格化版）</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -51,7 +51,6 @@
             gap: 10px;
         }
         
-        /* 画像表示部とカウンターを横並びにするためのコンテナ */
         .stage-area {
             display: flex;
             align-items: center;
@@ -60,7 +59,6 @@
             gap: 20px;
             margin-top: 10px;
         }
-        /* 左余白に配置する問題数カウンター */
         #counter-display {
             width: 100px;
             font-size: 28px;
@@ -225,7 +223,6 @@
 </div>
 
 <script>
-    // 追加の要望単語もすべて含め、音声認識のゆらぎ候補（漢字・カタカナ・空耳変換）を網羅的に強化しました
     const wordList = [
         { cat: "虫", accept: ["かぶとむし"], display: "かぶとむし", image: "images/kabutomushi.jpg" },
         { cat: "虫", accept: ["くわがた"], display: "くわがた", image: "images/kuwagata.jpg" },
@@ -290,7 +287,7 @@
         { cat: "肉", accept: ["とりにく", "鳥肉", "鶏肉", "とり肉"], display: "とりにく", image: "images/toriniku.jpg" },
         { cat: "肉", accept: ["ぶたにく", "豚肉", "ブタ肉", "ぶた肉"], display: "ぶたにく", image: "images/butaniku.jpg" },
         { cat: "肉", accept: ["ぎゅうにく", "牛肉", "牛きく", "ぎゅう肉"], display: "ぎゅうにく", image: "images/gyuniku.jpg" },
-        { cat: "爬虫類", accept: ["へび", "蛇", "ヘビ"], display: "へび", image: "images/hebi.jpg" },
+        { cat: "爬虫類", accept: ["hebi", "へび", "蛇", "ヘビ"], display: "へび", image: "images/hebi.jpg" },
         { cat: "爬虫類", accept: ["とかげ"], display: "とかげ", image: "images/tokage.jpg" },
         { cat: "爬虫類", accept: ["かえる"], display: "かえる", image: "images/kaeru.jpg" },
         { cat: "魚", accept: ["さば", "鯖", "サバ"], display: "さば", image: "images/saba.jpg" },
@@ -380,7 +377,7 @@
         { cat: "生活用品", accept: ["めがね"], display: "めがね", image: "images/megane.jpg" },
         { cat: "生活用品", accept: ["ハブラシ", "はぶらし"], display: "はブラシ", image: "images/haburashi.jpg" },
         { cat: "生活用品", accept: ["かがみ", "鏡", "カガミ"], display: "かがみ", image: "images/kagami.jpg" },
-        { cat: "生活用品", accept: ["かんそうき", "乾燥機", "カンソウキ"], display: "かんそうき", image: "images/kansouki.jpg" },
+        { cat: "生活用品", accept: ["かん槽き", "かんそうき", "乾燥機", "カンソウキ"], display: "かんそうき", image: "images/kansouki.jpg" },
         { cat: "生活用品", accept: ["そうじき", "掃除機", "ソウジキ", "正直"], display: "そうじき", image: "images/soujiki.jpg" },
         { cat: "生活用品", accept: ["はみがきこ"], display: "はみがきこ", image: "images/hamigakiko.jpg" },
         { cat: "生活用品", accept: ["つくえ", "机", "ツクエ"], display: "つくえ", image: "images/tsukue.jpg" },
@@ -423,8 +420,9 @@
     }
 
     function cleanTextToSound(str) {
-        let text = kataToHira(str);
-        return text.replace(/[^\u3041-\u3093\u30a1-\u30f6ー一-龠]/g, ""); // 漢字（一-龠）も網羅用に残す
+        if (!str) return "";
+        let text = kataToHira(str).trim();
+        return text.replace(/[^\u3041-\u3093\u30a1-\u30f6ー一-龠]/g, ""); 
     }
 
     function initAudio() {
@@ -489,13 +487,16 @@
             document.getElementById("guidance-mark").innerText = "かんがえています";
 
             const resultRaw = event.results[0][0].transcript.trim();
-            if (!resultRaw) {
+            
+            // ★【無音ブロック】もし認識した生データが空っぽなら、タメを作らず即刻間違いにする
+            if (!resultRaw || resultRaw === "") {
                 handleIncorrectState();
                 return;
             }
 
             const userSound = cleanTextToSound(resultRaw);
-            if (!userSound) {
+            // クリーニング後も空っぽなら間違いにする
+            if (!userSound || userSound === "") {
                 handleIncorrectState();
                 return;
             }
@@ -504,9 +505,14 @@
             let learnedAcceptsForCurrentWord = learnedDict[currentWord.display] || [];
             const dynamicAcceptList = [...currentWord.accept, ...learnedAcceptsForCurrentWord];
 
+            // ★【完全一致化】「部分一致(includes)」を廃止し、クリーニング後の音が完全に一致しているか、
+            // もしくは完全に一致する候補のいずれかであるときのみ合格にする
             const isCorrect = dynamicAcceptList.some(ans => {
                 const targetSound = cleanTextToSound(ans);
-                if (userSound === targetSound || userSound.includes(targetSound) || targetSound.includes(userSound)) {
+                if (targetSound === "") return false;
+                
+                // 完全一致での厳格チェック
+                if (userSound === targetSound) {
                     return true;
                 }
                 return false;
@@ -594,7 +600,6 @@
         shouldListen = false; 
         clearTimeout(silenceTimer);
 
-        // 問題カウンター更新
         const displayNum = currentIndex + 1;
         const totalNum = gameQuestions.length;
         document.getElementById("counter-display").innerText = displayNum + " / " + totalNum;
